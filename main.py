@@ -163,7 +163,6 @@ def main():
                 image_syn_vis[image_syn_vis>1] = 1.0
                 save_image(image_syn_vis, save_name, nrow=args.ipc) # Trying normalize = True/False may get better visual effects.
 
-
             ''' Train synthetic data '''
             net = get_network(args.model, channel, num_classes, im_size).to(args.device) # get a random model
             net.train()
@@ -215,6 +214,7 @@ def main():
 
                     output_syn = net(img_syn)
                     loss_syn = criterion(output_syn, lab_syn)
+                    print('class:',c)
                     gw_syn = torch.autograd.grad(loss_syn, net_parameters, create_graph=True)
 
                     loss += match_loss(gw_syn, gw_real, args)
