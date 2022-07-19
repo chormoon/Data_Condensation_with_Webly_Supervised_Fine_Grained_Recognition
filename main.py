@@ -25,8 +25,8 @@ def main():
     parser.add_argument('--Iteration', type=int, default=1000, help='training iterations')
     parser.add_argument('--lr_img', type=float, default=0.1, help='learning rate for updating synthetic images')
     parser.add_argument('--lr_net', type=float, default=0.01, help='learning rate for updating network parameters')
-    parser.add_argument('--batch_real', type=int, default=32, help='batch size for real data')
-    parser.add_argument('--batch_train', type=int, default=32, help='batch size for training networks')
+    parser.add_argument('--batch_real', type=int, default=8, help='batch size for real data')
+    parser.add_argument('--batch_train', type=int, default=8, help='batch size for training networks')
     parser.add_argument('--init', type=str, default='noise', help='noise/real: initialize synthetic images from random noise or randomly sampled real images.')
     parser.add_argument('--dsa_strategy', type=str, default='None', help='differentiable Siamese augmentation strategy')
     parser.add_argument('--data_path', type=str, default='data', help='dataset path')
@@ -163,6 +163,7 @@ def main():
                 image_syn_vis[image_syn_vis>1] = 1.0
                 save_image(image_syn_vis, save_name, nrow=args.ipc) # Trying normalize = True/False may get better visual effects.
 
+
             ''' Train synthetic data '''
             net = get_network(args.model, channel, num_classes, im_size).to(args.device) # get a random model
             net.train()
@@ -214,7 +215,6 @@ def main():
 
                     output_syn = net(img_syn)
                     loss_syn = criterion(output_syn, lab_syn)
-                    print('class:',c)
                     gw_syn = torch.autograd.grad(loss_syn, net_parameters, create_graph=True)
 
                     loss += match_loss(gw_syn, gw_real, args)

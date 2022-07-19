@@ -49,7 +49,7 @@ def get_dataset(data_dir):
   
 
 
-    testloader = torch.utils.data.DataLoader(dst_test, batch_size=16, shuffle=False, num_workers=4)
+    testloader = torch.utils.data.DataLoader(dst_test, batch_size=8, shuffle=False, num_workers=0)
     return channel, im_size, num_classes, class_names, mean, std, dst_train, dst_test, testloader
 
 
@@ -296,7 +296,7 @@ def evaluate_synset(it_eval, net, images_train, labels_train, testloader, args):
     criterion = nn.CrossEntropyLoss().to(args.device)
 
     dst_train = TensorDataset(images_train, labels_train)
-    trainloader = torch.utils.data.DataLoader(dst_train, batch_size=args.batch_train, shuffle=True, num_workers=4)
+    trainloader = torch.utils.data.DataLoader(dst_train, batch_size=args.batch_train, shuffle=True, num_workers=0)
 
     start = time.time()
     print(trainloader,testloader)
