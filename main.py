@@ -22,7 +22,7 @@ def main():
     parser.add_argument('--num_exp', type=int, default=5, help='the number of experiments')
     parser.add_argument('--num_eval', type=int, default=10, help='the number of evaluating randomly initialized models')
     parser.add_argument('--epoch_eval_train', type=int, default=100, help='epochs to train a model with synthetic data')
-    parser.add_argument('--Iteration', type=int, default=1000, help='training iterations')
+    parser.add_argument('--Iteration', type=int, default=100, help='training iterations')
     parser.add_argument('--lr_img', type=float, default=0.1, help='learning rate for updating synthetic images')
     parser.add_argument('--lr_net', type=float, default=0.01, help='learning rate for updating network parameters')
     parser.add_argument('--batch_real', type=int, default=8, help='batch size for real data')
@@ -182,7 +182,7 @@ def main():
                 # This would make the training with BatchNorm layers easier.
 
                 BN_flag = False
-                BNSizePC = 16  # for batch normalization
+                BNSizePC = 1  # for batch normalization
                 for module in net.modules():
                     if 'BatchNorm' in module._get_name(): #BatchNorm
                         BN_flag = True
@@ -215,6 +215,7 @@ def main():
 
                     output_syn = net(img_syn)
                     loss_syn = criterion(output_syn, lab_syn)
+                    print(c)
                     gw_syn = torch.autograd.grad(loss_syn, net_parameters, create_graph=True)
 
                     loss += match_loss(gw_syn, gw_real, args)

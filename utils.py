@@ -299,10 +299,9 @@ def evaluate_synset(it_eval, net, images_train, labels_train, testloader, args):
     trainloader = torch.utils.data.DataLoader(dst_train, batch_size=args.batch_train, shuffle=True, num_workers=0)
 
     start = time.time()
-    print(trainloader,testloader)
     for ep in range(Epoch+1):
         
-        print(ep,':',Epoch)
+        print(ep,'/',Epoch)
       
         loss_train, acc_train = epoch('train', trainloader, net, optimizer, criterion, args, aug = True)
         if ep in lr_schedule:
@@ -311,7 +310,6 @@ def evaluate_synset(it_eval, net, images_train, labels_train, testloader, args):
     
     time_train = time.time() - start
     print('time_train',time_train)
-    print(trainloader,testloader)
     loss_test, acc_test = epoch('test', testloader, net, optimizer, criterion, args, aug = False)
     print('%s Evaluate_%02d: epoch = %04d train time = %d s train loss = %.6f train acc = %.4f, test acc = %.4f' % (get_time(), it_eval, Epoch, int(time_train), loss_train, acc_train, acc_test))
 
