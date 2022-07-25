@@ -191,6 +191,7 @@ def distance_wb(gwr, gws):
 def match_loss(gw_syn, gw_real, args):
     dis = torch.tensor(0.0).to(args.device)
 
+
     if args.dis_metric == 'ours':
         for ig in range(len(gw_real)):
             gwr = gw_real[ig]
