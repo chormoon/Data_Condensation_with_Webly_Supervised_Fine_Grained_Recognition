@@ -259,10 +259,7 @@ def epoch(mode, dataloader, net, optimizer, criterion, args, aug):
     for i_batch, datum in enumerate(dataloader):
         img = datum[0].float().to(args.device)
         if aug:
-            if args.dsa:
-                img = DiffAugment(img, args.dsa_strategy, param=args.dsa_param)
-            else:
-                img = augment(img, args.dc_aug_param, device=args.device)
+            img = augment(img, args.dc_aug_param, device=args.device)
         lab = datum[1].long().to(args.device)
         n_b = lab.shape[0]
         output = net(img)
@@ -426,17 +423,6 @@ def get_eval_pool(eval_mode, model, model_eval):
     return model_eval_pool
 
 
-class ParamDiffAug():
-    def __init__(self):
-        self.aug_mode = 'S' #'multiple or single'
-        self.prob_flip = 0.5
-        self.ratio_scale = 1.2
-        self.ratio_rotate = 15.0
-        self.ratio_crop_pad = 0.125
-        self.ratio_cutout = 0.5 # the size would be 0.5x0.5
-        self.brightness = 1.0
-        self.saturation = 2.0
-        self.contrast = 0.5
 
 
 def set_seed_DiffAug(param):
@@ -447,32 +433,6 @@ def set_seed_DiffAug(param):
         param.latestseed += 1
 
 
-def DiffAugment(x, strategy='', seed = -1, param = None):
-    if strategy == 'None' or strategy == 'none' or strategy == '':
-        return x
-
-    if seed == -1:
-        param.Siamese = False
-    else:
-        param.Siamese = True
-
-    param.latestseed = seed
-
-    if strategy:
-        if param.aug_mode == 'M': # original
-            for p in strategy.split('_'):
-                for f in AUGMENT_FNS[p]:
-                    x = f(x, param)
-        elif param.aug_mode == 'S':
-            pbties = strategy.split('_')
-            set_seed_DiffAug(param)
-            p = pbties[torch.randint(0, len(pbties), size=(1,)).item()]
-            for f in AUGMENT_FNS[p]:
-                x = f(x, param)
-        else:
-            exit('unknown augmentation mode: %s'%param.aug_mode)
-        x = x.contiguous()
-    return x
 
 
 # We implement the following differentiable augmentation strategies based on the code provided in https://github.com/mit-han-lab/data-efficient-gans.

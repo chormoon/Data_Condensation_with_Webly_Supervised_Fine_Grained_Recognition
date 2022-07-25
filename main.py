@@ -8,13 +8,13 @@ import torch.nn as nn
 import torchvision
 from torchvision.utils import save_image
 from torch.utils.data import DataLoader
-from utils import get_loops, get_dataset, get_network, get_eval_pool, evaluate_synset, get_daparam, match_loss, get_time, TensorDataset, epoch, DiffAugment, ParamDiffAug
+from utils import get_loops, get_dataset, get_network, get_eval_pool, evaluate_synset, get_daparam, match_loss, get_time, TensorDataset, epoch
 
 
 def main():
 
     parser = argparse.ArgumentParser(description='Parameter Processing')
-    parser.add_argument('--method', type=str, default='DC', help='DC/DSA')
+    # parser.add_argument('--method', type=str, default='DC', help='DC/DSA')
     parser.add_argument('--dataset', type=str, default='CIFAR10', help='dataset')
     parser.add_argument('--model', type=str, default='ConvNet', help='model')
     parser.add_argument('--ipc', type=int, default=1, help='image(s) per class')
@@ -28,7 +28,7 @@ def main():
     parser.add_argument('--batch_real', type=int, default=8, help='batch size for real data')
     parser.add_argument('--batch_train', type=int, default=8, help='batch size for training networks')
     parser.add_argument('--init', type=str, default='noise', help='noise/real: initialize synthetic images from random noise or randomly sampled real images.')
-    parser.add_argument('--dsa_strategy', type=str, default='None', help='differentiable Siamese augmentation strategy')
+    # parser.add_argument('--dsa_strategy', type=str, default='None', help='differentiable Siamese augmentation strategy')
     parser.add_argument('--data_path', type=str, default='data', help='dataset path')
     parser.add_argument('--save_path', type=str, default='result', help='path to save results')
     parser.add_argument('--dis_metric', type=str, default='ours', help='distance metric')
@@ -37,8 +37,8 @@ def main():
     args = parser.parse_args()
     args.outer_loop, args.inner_loop = get_loops(args.ipc)
     args.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    args.dsa_param = ParamDiffAug()
-    args.dsa = True if args.method == 'DSA' else False
+    # args.dsa_param = ParamDiffAug()
+    # args.dsa = True if args.method == 'DSA' else False
 
     if not os.path.exists(args.data_path):
         os.mkdir(args.data_path)
@@ -129,19 +129,10 @@ def main():
             if it in eval_it_pool:
                 for model_eval in model_eval_pool:
                     print('-------------------------\nEvaluation\nmodel_train = %s, model_eval = %s, iteration = %d'%(args.model, model_eval, it))
-                    if args.dsa:
-                        args.epoch_eval_train = 1000
-                        args.dc_aug_param = None
-                        print('DSA augmentation strategy: \n', args.dsa_strategy)
-                        print('DSA augmentation parameters: \n', args.dsa_param.__dict__)
-                    else:
-                        args.dc_aug_param = get_daparam(args.dataset, args.model, model_eval, args.ipc) # This augmentation parameter set is only for DC method. It will be muted when args.dsa is True.
-                        print('DC augmentation parameters: \n', args.dc_aug_param)
+                    args.dc_aug_param = get_daparam(args.dataset, args.model, model_eval, args.ipc) # This augmentation parameter set is only for DC method. It will be muted when args.dsa is True.
+                    print('DC augmentation parameters: \n', args.dc_aug_param)
 
-                    if args.dsa or args.dc_aug_param['strategy'] != 'none':
-                        args.epoch_eval_train = 1000  # Training with data augmentation needs more epochs.
-                    else:
-                        args.epoch_eval_train = 300
+                    args.epoch_eval_train = 300
 
                     accs = []
                     for it_eval in range(args.num_eval):
@@ -155,7 +146,7 @@ def main():
                         accs_all_exps[model_eval] += accs
 
                 ''' visualize and save '''
-                save_name = os.path.join(args.save_path, 'vis_%s_%s_%s_%dipc_exp%d_iter%d.png'%(args.method, args.dataset, args.model, args.ipc, exp, it))
+                save_name = os.path.join(args.save_path, 'vis_%s_%s_%dipc_exp%d_iter%d.png'%(args.dataset, args.model, args.ipc, exp, it))
                 image_syn_vis = copy.deepcopy(image_syn.detach().cpu())
                 for ch in range(channel):
                     image_syn_vis[:, ch] = image_syn_vis[:, ch]  * std[ch] + mean[ch]
@@ -203,10 +194,7 @@ def main():
                     img_syn = image_syn[c*args.ipc:(c+1)*args.ipc].reshape((args.ipc, channel, im_size[0], im_size[1]))
                     lab_syn = torch.ones((args.ipc,), device=args.device, dtype=torch.long) * c
 
-                    if args.dsa:
-                        seed = int(time.time() * 1000) % 100000
-                        img_real = DiffAugment(img_real, args.dsa_strategy, seed=seed, param=args.dsa_param)
-                        img_syn = DiffAugment(img_syn, args.dsa_strategy, seed=seed, param=args.dsa_param)
+
 
                     output_real = net(img_real)
                     loss_real = criterion(output_real, lab_real)
@@ -234,7 +222,7 @@ def main():
                 dst_syn_train = TensorDataset(image_syn_train, label_syn_train)
                 trainloader = torch.utils.data.DataLoader(dst_syn_train, batch_size=args.batch_train, shuffle=True, num_workers=0)
                 for il in range(args.inner_loop):
-                    epoch('train', trainloader, net, optimizer_net, criterion, args, aug = True if args.dsa else False)
+                    epoch('train', trainloader, net, optimizer_net, criterion, args, aug =  False)
 
 
             loss_avg /= (num_classes*args.outer_loop)
@@ -244,7 +232,7 @@ def main():
 
             if it == args.Iteration: # only record the final results
                 data_save.append([copy.deepcopy(image_syn.detach().cpu()), copy.deepcopy(label_syn.detach().cpu())])
-                torch.save({'data': data_save, 'accs_all_exps': accs_all_exps, }, os.path.join(args.save_path, 'res_%s_%s_%s_%dipc.pt'%(args.method, args.dataset, args.model, args.ipc)))
+                torch.save({'data': data_save, 'accs_all_exps': accs_all_exps, }, os.path.join(args.save_path, 'res_%s_%s_%dipc.pt'%(args.dataset, args.model, args.ipc)))
 
 
     print('\n==================== Final Results ====================\n')
