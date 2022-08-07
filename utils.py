@@ -16,15 +16,15 @@ from networks import MLP, ConvNet, LeNet, AlexNet, AlexNetBN, VGG11, VGG11BN, Re
 def get_dataset(data_dir):
     
     train_transform = torchvision.transforms.Compose([
-        torchvision.transforms.Resize(size=448),
+        torchvision.transforms.Resize(size=32),
         torchvision.transforms.RandomHorizontalFlip(),
-        torchvision.transforms.RandomCrop(size=448),
+        torchvision.transforms.RandomCrop(size=32),
         torchvision.transforms.ToTensor(),
         torchvision.transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
     ])
     test_transform = torchvision.transforms.Compose([
-        torchvision.transforms.Resize(size=448),
-        torchvision.transforms.CenterCrop(size=448),
+        torchvision.transforms.Resize(size=32),
+        torchvision.transforms.CenterCrop(size=32),
         torchvision.transforms.ToTensor(),
         torchvision.transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
     ])
@@ -33,11 +33,11 @@ def get_dataset(data_dir):
     dst_test = torchvision.datasets.ImageFolder(os.path.join(data_dir, 'val'), transform=test_transform)
     
      
-    train_data = torch.utils.data.DataLoader(dst_train, batch_size=128, shuffle=True, num_workers=4, pin_memory=True)
-    test_data = torch.utils.data.DataLoader(dst_test, batch_size=128, shuffle=True, num_workers=4, pin_memory=True)
+    train_data = torch.utils.data.DataLoader(dst_train, batch_size=256, shuffle=True, num_workers=4, pin_memory=True)
+    test_data = torch.utils.data.DataLoader(dst_test, batch_size=256, shuffle=True, num_workers=4, pin_memory=True)
 
     channel = 3
-    im_size = (448, 448)
+    im_size = (32, 32)
     num_classes = 102
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
@@ -49,7 +49,7 @@ def get_dataset(data_dir):
   
 
 
-    testloader = torch.utils.data.DataLoader(dst_test, batch_size=8, shuffle=False, num_workers=0)
+    testloader = torch.utils.data.DataLoader(dst_test, batch_size=32, shuffle=False, num_workers=0)
     return channel, im_size, num_classes, class_names, mean, std, dst_train, dst_test, testloader
 
 
@@ -191,7 +191,6 @@ def distance_wb(gwr, gws):
 def match_loss(gw_syn, gw_real, args):
     dis = torch.tensor(0.0).to(args.device)
 
-
     if args.dis_metric == 'ours':
         for ig in range(len(gw_real)):
             gwr = gw_real[ig]
@@ -260,7 +259,10 @@ def epoch(mode, dataloader, net, optimizer, criterion, args, aug):
     for i_batch, datum in enumerate(dataloader):
         img = datum[0].float().to(args.device)
         if aug:
-            img = augment(img, args.dc_aug_param, device=args.device)
+            if args.dsa:
+                img = DiffAugment(img, args.dsa_strategy, param=args.dsa_param)
+            else:
+                img = augment(img, args.dc_aug_param, device=args.device)
         lab = datum[1].long().to(args.device)
         n_b = lab.shape[0]
         output = net(img)
@@ -298,8 +300,8 @@ def evaluate_synset(it_eval, net, images_train, labels_train, testloader, args):
 
     start = time.time()
     for ep in range(Epoch+1):
-        
-        print(ep,'/',Epoch)
+        if(ep%50==0):
+            print(ep,'/',Epoch)
       
         loss_train, acc_train = epoch('train', trainloader, net, optimizer, criterion, args, aug = True)
         if ep in lr_schedule:
@@ -424,6 +426,17 @@ def get_eval_pool(eval_mode, model, model_eval):
     return model_eval_pool
 
 
+class ParamDiffAug():
+    def __init__(self):
+        self.aug_mode = 'S' #'multiple or single'
+        self.prob_flip = 0.5
+        self.ratio_scale = 1.2
+        self.ratio_rotate = 15.0
+        self.ratio_crop_pad = 0.125
+        self.ratio_cutout = 0.5 # the size would be 0.5x0.5
+        self.brightness = 1.0
+        self.saturation = 2.0
+        self.contrast = 0.5
 
 
 def set_seed_DiffAug(param):
@@ -434,6 +447,32 @@ def set_seed_DiffAug(param):
         param.latestseed += 1
 
 
+def DiffAugment(x, strategy='', seed = -1, param = None):
+    if strategy == 'None' or strategy == 'none' or strategy == '':
+        return x
+
+    if seed == -1:
+        param.Siamese = False
+    else:
+        param.Siamese = True
+
+    param.latestseed = seed
+
+    if strategy:
+        if param.aug_mode == 'M': # original
+            for p in strategy.split('_'):
+                for f in AUGMENT_FNS[p]:
+                    x = f(x, param)
+        elif param.aug_mode == 'S':
+            pbties = strategy.split('_')
+            set_seed_DiffAug(param)
+            p = pbties[torch.randint(0, len(pbties), size=(1,)).item()]
+            for f in AUGMENT_FNS[p]:
+                x = f(x, param)
+        else:
+            exit('unknown augmentation mode: %s'%param.aug_mode)
+        x = x.contiguous()
+    return x
 
 
 # We implement the following differentiable augmentation strategies based on the code provided in https://github.com/mit-han-lab/data-efficient-gans.
