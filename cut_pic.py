@@ -1,7 +1,9 @@
 import cv2
 import os
 import sys
-
+import random
+import shutil
+from shutil import copy2
 
 def crop(img, num_width, num_height,filename2):
     # 获取整张图片每行每列有多少张图，并计算其能裁剪什么尺寸的图片
@@ -27,6 +29,35 @@ def crop(img, num_width, num_height,filename2):
             print("image save successfully")
         class_name = class_name + 1
 
+def move_pic():
+    dir_name = os.listdir('/content/gdrive/MyDrive/DataCondensation_with_webly/flowers102_condens')
+    for name in dir_name:
+        os.makedirs('/content/gdrive/MyDrive/DataCondensation_with_webly/flowers102_sys/train/' + name, exist_ok=True)
+    for name in dir_name:
+        os.makedirs('/content/gdrive/MyDrive/DataCondensation_with_webly/flowers102_sys/val/' + name, exist_ok=True)
+    for name in dir_name:
+        os.makedirs('/content/gdrive/MyDrive/DataCondensation_with_webly/flowers102_sys/test/' + name, exist_ok=True)
+    for name in dir_name:
+        trainfiles = os.listdir('/content/gdrive/MyDrive/DataCondensation_with_webly/flowers102_condens' + "/" + name + '/')#图片文件夹
+        num_train = len(trainfiles)
+        print( "num_train: " + str(num_train) )
+        index_list = list(range(num_train))
+        print(index_list)
+        random.shuffle(index_list)
+        num = 0
+        trainDir = '/content/gdrive/MyDrive/DataCondensation_with_webly/flowers102_sys/train/' + name + '/'#将图片文件夹中的7份放在这个文件夹下）
+        validDir = '/content/gdrive/MyDrive/DataCondensation_with_webly/flowers102_sys/val/' + name + '/'#将图片文件夹中的1份放在这个文件夹）
+        testDir = '/content/gdrive/MyDrive/DataCondensation_with_webly/flowers102_sys/test/' + name + '/'#将图片文件夹中的2份放在这个文件夹）
+        for i in index_list:
+            fileName = '/content/gdrive/MyDrive/DataCondensation_with_webly/flowers102_condens/' + name + '/' + trainfiles[i]
+            if num < num_train*0.7:
+                print(str(fileName))
+                copy2(fileName, trainDir)
+            elif num >= num_train*0.7 and num < num_train*0.8:
+                copy2(fileName, validDir)
+            else:
+                copy2(fileName, testDir)    
+            num += 1
 
 
 if __name__ == '__main__':
@@ -35,4 +66,4 @@ if __name__ == '__main__':
     img = cv2.imread(filename)
     filename2 = '/content/gdrive/MyDrive/DataCondensation_with_webly/flowers102_condens'
     crop(img, 10, 102,filename2)
-
+    move_pic()
