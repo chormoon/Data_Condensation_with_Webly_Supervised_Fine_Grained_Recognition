@@ -32,7 +32,7 @@ def main():
     parser.add_argument('--data_path', type=str, default='data', help='dataset path')
     parser.add_argument('--save_path', type=str, default='result', help='path to save results')
     parser.add_argument('--dis_metric', type=str, default='ours', help='distance metric')
-    parser.add_argument('--data_dir', type=str, default='/content/flowers102', help='distance metric')
+    parser.add_argument('--data_dir', type=str, default='/content/gdrive/MyDrive/DataCondensation_with_webly/oxfordpets', help='distance metric')
 
     args = parser.parse_args()
     args.outer_loop, args.inner_loop = get_loops(args.ipc)
